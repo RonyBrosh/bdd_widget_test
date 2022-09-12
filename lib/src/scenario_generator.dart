@@ -17,7 +17,7 @@ void parseScenario(
     sb.writeln('      try {');
   }
   final spaces = hasTearDown ? '        ' : '      ';
-  sb.writeln('${spaces}await mockNetworkImagesFor(() {');
+  sb.writeln('${spaces}await mockNetworkImagesFor(() async {');
   if (hasSetUp) {
     sb.writeln('${spaces}await $setUpMethodName(tester);');
   }
