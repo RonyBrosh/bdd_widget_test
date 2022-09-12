@@ -18,6 +18,7 @@ String generateFeatureDart(
   sb.writeln();
   sb.writeln('import \'package:flutter/material.dart\';');
   sb.writeln('import \'package:flutter_test/flutter_test.dart\';');
+  sb.writeln('import \'package:network_image_mock/network_image_mock.dart\';');
   if (isIntegrationTest) {
     sb.writeln('import \'package:integration_test/integration_test.dart\';');
   }
