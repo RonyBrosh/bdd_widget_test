@@ -17,6 +17,7 @@ void parseScenario(
     sb.writeln('      try {');
   }
   final spaces = hasTearDown ? '        ' : '      ';
+  sb.writeln('${spaces}await mockNetworkImagesFor((){');
   if (hasSetUp) {
     sb.writeln('${spaces}await $setUpMethodName(tester);');
   }
@@ -24,7 +25,7 @@ void parseScenario(
   for (final step in scenario) {
     sb.writeln('${spaces}await ${getStepMethodCall(step.value)};');
   }
-
+  sb.writeln('${spaces})};');
   if (hasTearDown) {
     sb.writeln('      } finally {');
     sb.writeln('        await $tearDownMethodName(tester);');
