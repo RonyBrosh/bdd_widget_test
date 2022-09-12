@@ -9,15 +9,17 @@ void parseScenario(
   bool hasSetUp,
   bool hasTearDown,
   String testMethodName,
-  List<String> tags,
-) {
-  sb.writeln(
-      '    $testMethodName(\'\'\'$scenarioTitle\'\'\', (tester) async {');
+  List<String> tags, {
+  bool isIntegrationTest = false,
+}) {
+  sb.writeln('    $testMethodName(\'\'\'$scenarioTitle\'\'\', (tester) async {');
   if (hasTearDown) {
     sb.writeln('      try {');
   }
   final spaces = hasTearDown ? '        ' : '      ';
-  sb.writeln('${spaces}await mockNetworkImagesFor(() async {');
+  if (!isIntegrationTest) {
+    sb.writeln('${spaces}await mockNetworkImagesFor(() async {');
+  }
   if (hasSetUp) {
     sb.writeln('${spaces}await $setUpMethodName(tester);');
   }
@@ -25,23 +27,23 @@ void parseScenario(
   for (final step in scenario) {
     sb.writeln('${spaces}await ${getStepMethodCall(step.value)};');
   }
-  sb.writeln('${spaces}});');
+  if (!isIntegrationTest) {
+    sb.writeln('$spaces});');
+  }
+
   if (hasTearDown) {
     sb.writeln('      } finally {');
     sb.writeln('        await $tearDownMethodName(tester);');
     sb.writeln('      }');
   }
-  sb.writeln(
-      '    }${tags.isNotEmpty ? ', tags: [\'${tags.join('\', \'')}\']' : ''});');
+  sb.writeln('    }${tags.isNotEmpty ? ', tags: [\'${tags.join('\', \'')}\']' : ''});');
 }
 
 List<List<BddLine>> generateScenariosFromScenaioOutline(
   List<BddLine> scenario,
 ) {
   final examples = _getExamples(scenario);
-  return examples
-      .map((e) => _processScenarioLines(scenario, e).toList())
-      .toList();
+  return examples.map((e) => _processScenarioLines(scenario, e).toList()).toList();
 }
 
 List<Map<String, String>> _getExamples(
@@ -60,18 +62,14 @@ List<Map<String, String>> _getExamples(
   return exampleLines.skip(1).map((e) => Map.fromIterables(names, e)).toList();
 }
 
-List<String> _parseExampleLine(String line) =>
-    line.split('|').map((e) => e.trim()).toList();
+List<String> _parseExampleLine(String line) => line.split('|').map((e) => e.trim()).toList();
 
-Iterable<BddLine> _processScenarioLines(
-    List<BddLine> lines, Map<String, String> examples) sync* {
+Iterable<BddLine> _processScenarioLines(List<BddLine> lines, Map<String, String> examples) sync* {
   final name = lines.first;
-  yield BddLine.fromValue(
-      name.type, '${name.value} (${examples.values.join(', ')})');
+  yield BddLine.fromValue(name.type, '${name.value} (${examples.values.join(', ')})');
 
   for (final line in lines.skip(1)) {
-    yield BddLine.fromValue(
-        line.type, _replacePlaceholders(line.value, examples));
+    yield BddLine.fromValue(line.type, _replacePlaceholders(line.value, examples));
   }
 }
 

@@ -18,17 +18,17 @@ String generateFeatureDart(
   sb.writeln();
   sb.writeln('import \'package:flutter/material.dart\';');
   sb.writeln('import \'package:flutter_test/flutter_test.dart\';');
-  sb.writeln('import \'package:network_image_mock/network_image_mock.dart\';');
   if (isIntegrationTest) {
     sb.writeln('import \'package:integration_test/integration_test.dart\';');
+  } else {
+    sb.writeln('import \'package:network_image_mock/network_image_mock.dart\';');
   }
   sb.writeln();
 
   var featureTestMethodNameOverride = testMethodName;
   final tags = <String>[];
 
-  for (final line
-      in lines.takeWhile((value) => value.type != LineType.feature)) {
+  for (final line in lines.takeWhile((value) => value.type != LineType.feature)) {
     if (line.type == LineType.tag) {
       final methodName = _parseTestMethodNameTag(line.rawLine);
       if (methodName.isNotEmpty) {
@@ -70,6 +70,7 @@ String generateFeatureDart(
       hasBackground,
       hasAfter,
       featureTestMethodNameOverride,
+      isIntegrationTest: isIntegrationTest,
     );
   }
   sb.writeln('}');
@@ -79,11 +80,9 @@ String generateFeatureDart(
 bool _parseBackground(StringBuffer sb, List<BddLine> lines) =>
     _parseSetup(sb, lines, LineType.background, setUpMethodName);
 
-bool _parseAfter(StringBuffer sb, List<BddLine> lines) =>
-    _parseSetup(sb, lines, LineType.after, tearDownMethodName);
+bool _parseAfter(StringBuffer sb, List<BddLine> lines) => _parseSetup(sb, lines, LineType.after, tearDownMethodName);
 
-bool _parseSetup(
-    StringBuffer sb, List<BddLine> lines, LineType elementType, String title) {
+bool _parseSetup(StringBuffer sb, List<BddLine> lines, LineType elementType, String title) {
   var offset = lines.indexWhere((element) => element.type == elementType);
   if (offset != -1) {
     sb.writeln('  Future<void> $title(WidgetTester tester) async {');
@@ -102,25 +101,22 @@ void _parseFeature(
   List<BddLine> feature,
   bool hasSetUp,
   bool hasTearDown,
-  String testMethodName,
-) {
+  String testMethodName, {
+  bool isIntegrationTest = false,
+}) {
   sb.writeln('  group(\'\'\'${feature.first.value}\'\'\', () {');
 
-  final scenarios = _splitScenarios(
-          feature.skipWhile((value) => !_isNewScenario(value.type)).toList())
-      .toList();
+  final scenarios = _splitScenarios(feature.skipWhile((value) => !_isNewScenario(value.type)).toList()).toList();
   for (final scenario in scenarios) {
-    final scenarioTagLines =
-        scenario.where((line) => line.type == LineType.tag).toList();
+    final scenarioTagLines = scenario.where((line) => line.type == LineType.tag).toList();
 
     final scenarioTestMethodName = _parseTestMethodName(
       scenarioTagLines,
       testMethodName,
     );
 
-    final flattenDataTables = replaceDataTables(
-            scenario.skipWhile((line) => line.type == LineType.tag).toList())
-        .toList();
+    final flattenDataTables =
+        replaceDataTables(scenario.skipWhile((line) => line.type == LineType.tag).toList()).toList();
     final scenariosToParse = flattenDataTables.first.type == LineType.scenario
         ? [flattenDataTables]
         : generateScenariosFromScenaioOutline(flattenDataTables);
@@ -137,17 +133,16 @@ void _parseFeature(
             .where((tag) => !tag.rawLine.startsWith(testMethodNameTag))
             .map((line) => line.rawLine.substring('@'.length))
             .toList(),
+        isIntegrationTest: isIntegrationTest,
       );
     }
   }
   sb.writeln('  });');
 }
 
-bool _isNewScenario(LineType type) =>
-    _isScenarioKindLine(type) || type == LineType.tag;
+bool _isNewScenario(LineType type) => _isScenarioKindLine(type) || type == LineType.tag;
 
-bool _isScenarioKindLine(LineType type) =>
-    type == LineType.scenario || type == LineType.scenarioOutline;
+bool _isScenarioKindLine(LineType type) => type == LineType.scenario || type == LineType.scenarioOutline;
 
 String _parseTestMethodName(
   List<BddLine> featureTagLines,
@@ -155,8 +150,7 @@ String _parseTestMethodName(
 ) {
   var scenarioTestMethodName = testMethodName;
 
-  final customMethodTagLine = featureTagLines
-      .firstWhereOrNull((line) => line.rawLine.startsWith(testMethodNameTag));
+  final customMethodTagLine = featureTagLines.firstWhereOrNull((line) => line.rawLine.startsWith(testMethodNameTag));
 
   if (customMethodTagLine != null) {
     final testMethodNameOverride = _parseTestMethodNameTag(
@@ -188,8 +182,7 @@ List<List<T>> splitWhen<T>(Iterable<T> original, bool Function(T) predicate) =>
 
 Iterable<List<BddLine>> _splitScenarios(List<BddLine> lines) sync* {
   for (var current = 0; current < lines.length;) {
-    if (_isScenarioKindLine(lines[current].type) ||
-        lines[current].type == LineType.tag) {
+    if (_isScenarioKindLine(lines[current].type) || lines[current].type == LineType.tag) {
       final scenario = _parseScenario(lines.sublist(current)).toList();
       current += scenario.length;
       yield scenario;
